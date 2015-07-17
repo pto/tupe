@@ -1,13 +1,17 @@
 %{
 #include <stdio.h>
+#include <math.h>
+
 #define YYSTYPE double
+
 int yylex();
 void yyerror(char *s);
 %}
 
 %token NUMBER
 %left '+' '-'
-%left '*' '/'
+%left '*' '/' '%'
+%left UNARYMINUS UNARYPLUS
 %%
 
 list:	  /* nothing */
@@ -15,12 +19,15 @@ list:	  /* nothing */
 		| list expr '\n'		{ printf("\t%.8g\n", $2); }
 		;
 
-expr:	  NUMBER				{ $$ = $1; }
-		| expr '+' expr			{ $$ = $1 + $3; }
-		| expr '-' expr			{ $$ = $1 - $3; }
-		| expr '*' expr			{ $$ = $1 * $3; }
-		| expr '/' expr			{ $$ = $1 / $3; }
-		| '(' expr ')'			{ $$ = $2; }
+expr:	  NUMBER						{ $$ = $1; }
+		| '-' expr  %prec UNARYMINUS	{ $$ = -$2; }
+		| '+' expr  %prec UNARYPLUS		{ $$ = $2; }
+		| expr '+' expr					{ $$ = $1 + $3; }
+		| expr '-' expr					{ $$ = $1 - $3; }
+		| expr '*' expr					{ $$ = $1 * $3; }
+		| expr '/' expr					{ $$ = $1 / $3; }
+		| expr '%' expr					{ $$ = fmod($1, $3); }
+		| '(' expr ')'					{ $$ = $2; }
 		;
 
 %%
