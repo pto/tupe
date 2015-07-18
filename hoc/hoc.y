@@ -2,34 +2,46 @@
 #include <stdio.h>
 #include <math.h>
 
-#define YYSTYPE double
+double mem[26];
 
 int yylex();
 void yyerror(char *s);
 %}
 
-%token NUMBER
+%union {
+	double val;
+	int    index;
+}
+
+%token <val>	NUMBER
+%token <index>	VAR
+%type  <val>	expr
+%right '='
 %left '+' '-'
 %left '*' '/' '%'
 %left UNARYMINUS UNARYPLUS
-%%
 
+%%
 list:	  /* nothing */
 		| list '\n'
 		| list expr '\n'		{ printf("\t%.8g\n", $2); }
+		| list error '\n'		{ yyerrok; }
 		;
 
 expr:	  NUMBER						{ $$ = $1; }
+		| VAR							{ $$ = mem[$1]; }
+		| VAR '=' expr					{ $$ = mem[$1] = $3; }
 		| '-' expr  %prec UNARYMINUS	{ $$ = -$2; }
 		| '+' expr  %prec UNARYPLUS		{ $$ = $2; }
 		| expr '+' expr					{ $$ = $1 + $3; }
 		| expr '-' expr					{ $$ = $1 - $3; }
 		| expr '*' expr					{ $$ = $1 * $3; }
-		| expr '/' expr					{ $$ = $1 / $3; }
+		| expr '/' expr					{ if ($3 == 0.0)
+											execerror("division by zero", "");
+									   	  $$ = $1 / $3; }
 		| expr '%' expr					{ $$ = fmod($1, $3); }
 		| '(' expr ')'					{ $$ = $2; }
 		;
-
 %%
 
 #include <ctype.h>
