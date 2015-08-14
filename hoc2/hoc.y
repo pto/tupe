@@ -3,9 +3,11 @@
 #include <math.h>
 
 double mem[26];
+double previous;
 
 int yylex();
 void yyerror(char *s);
+void execerror(char* s, char* t);
 %}
 
 %union {
@@ -23,13 +25,18 @@ void yyerror(char *s);
 
 %%
 list:	  /* nothing */
-		| list '\n'
-		| list expr '\n'		{ printf("\t%.8g\n", $2); }
-		| list error '\n'		{ yyerrok; }
+		| list eoe
+		| list expr eoe			{ previous = $2; printf("\t%.8g\n", $2); }
+		| list error eoe		{ yyerrok; }
+		;
+
+eoe:	  '\n'
+   		| ';'
 		;
 
 expr:	  NUMBER						{ $$ = $1; }
 		| VAR							{ $$ = mem[$1]; }
+		| '$'							{ $$ = previous; }
 		| VAR '=' expr					{ $$ = mem[$1] = $3; }
 		| '-' expr  %prec UNARYMINUS	{ $$ = -$2; }
 		| '+' expr  %prec UNARYPLUS		{ $$ = $2; }
@@ -45,13 +52,20 @@ expr:	  NUMBER						{ $$ = $1; }
 %%
 
 #include <ctype.h>
+#include <signal.h>
+#include <setjmp.h>
 
 char *progname;
 int  lineno = 1;
+jmp_buf begin;
+
+void fpecatch(int);
 
 int main(int argc, char *argv[])
 {
 	progname = argv[0];
+	setjmp(begin);
+	signal(SIGFPE, fpecatch);
 	yyparse();
 }
 
@@ -66,8 +80,12 @@ int yylex()
 		return 0;
 	if (c == '.' || isdigit(c)) {
 		ungetc(c, stdin);
-		scanf("%lf", &yylval);
+		scanf("%lf", &yylval.val);
 		return NUMBER;
+	}
+	if (islower(c)) {
+		yylval.index = c - 'a';
+		return VAR;
 	}
 	if (c == '\n')
 		lineno++;
@@ -88,3 +106,13 @@ void yyerror(char *s)
 	warning(s, (char *)0);
 }
 
+void execerror(char *s, char *t)
+{
+	warning(s, t);
+	longjmp(begin, 0);
+}
+
+void fpecatch(int i)
+{
+	execerror("floating point exception", (char *)0);
+}
