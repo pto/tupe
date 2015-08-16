@@ -1,43 +1,51 @@
 %{
 #include <stdio.h>
 #include <math.h>
+#include "hoc.h"
 
-double mem[26];
 double previous;
 
-int yylex();
+int yylex(void);
 void yyerror(char *s);
-void execerror(char* s, char* t);
+void init(void);
+double Pow(double, double);
 %}
 
 %union {
 	double val;
-	int    index;
+	Symbol *sym;
 }
 
 %token <val>	NUMBER
-%token <index>	VAR
-%type  <val>	expr
+%token <sym>	VAR BLTIN UNDEF
+%type  <val>	expr asgn
 %right '='
 %left '+' '-'
 %left '*' '/' '%'
 %left UNARYMINUS UNARYPLUS
+%right '^'
 
 %%
 list:	  /* nothing */
-		| list eoe
-		| list expr eoe			{ previous = $2; printf("\t%.8g\n", $2); }
-		| list error eoe		{ yyerrok; }
+		| list eos
+		| list asgn eos
+		| list expr eos			{ previous = $2; printf("\t%.8g\n", $2); }
+		| list error eos		{ yyerrok; }
 		;
 
-eoe:	  '\n'
+eos:	  '\n'
    		| ';'
 		;
 
+asgn:	  VAR '=' expr	{ previous = $3; $$ = $1->u.val = $3; $1->type = VAR; }
+
 expr:	  NUMBER						{ $$ = $1; }
-		| VAR							{ $$ = mem[$1]; }
+		| VAR	{ if ($1->type == UNDEF)
+					execerror("undefined variable", $1->name);
+				  $$ = $1->u.val; }
 		| '$'							{ $$ = previous; }
-		| VAR '=' expr					{ $$ = mem[$1] = $3; }
+		| asgn
+		| BLTIN '(' expr ')'			{ $$ = (*($1->u.ptr))($3); }
 		| '-' expr  %prec UNARYMINUS	{ $$ = -$2; }
 		| '+' expr  %prec UNARYPLUS		{ $$ = $2; }
 		| expr '+' expr					{ $$ = $1 + $3; }
@@ -47,6 +55,7 @@ expr:	  NUMBER						{ $$ = $1; }
 											execerror("division by zero", "");
 									   	  $$ = $1 / $3; }
 		| expr '%' expr					{ $$ = fmod($1, $3); }
+		| expr '^' expr					{ $$ = Pow($1, $3); }
 		| '(' expr ')'					{ $$ = $2; }
 		;
 %%
@@ -64,12 +73,13 @@ void fpecatch(int);
 int main(int argc, char *argv[])
 {
 	progname = argv[0];
+	init();
 	setjmp(begin);
 	signal(SIGFPE, fpecatch);
 	yyparse();
 }
 
-int yylex()
+int yylex(void)
 {
 	int c;
 
@@ -83,9 +93,19 @@ int yylex()
 		scanf("%lf", &yylval.val);
 		return NUMBER;
 	}
-	if (islower(c)) {
-		yylval.index = c - 'a';
-		return VAR;
+	if (isalpha(c)) {
+		Symbol *s;
+		char sbuf[100], *p = sbuf;
+
+		do {
+			*p++ = c;
+		} while ((c = getchar()) != EOF && isalnum(c));
+		ungetc(c, stdin);
+		*p = '\0';
+		if ((s = lookup(sbuf)) == 0)
+			s = install(sbuf, UNDEF, 0.0);
+		yylval.sym = s;
+		return s->type == UNDEF ? VAR : s->type;
 	}
 	if (c == '\n')
 		lineno++;
