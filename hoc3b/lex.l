@@ -7,7 +7,7 @@ extern int lineno;
 
 %%
 [ \t]	{ ; }
-[0-9]+\.?([eE][+-]?[0-9]+)?|[0-9]*\.[0-9]+([eE][+-]?[0-9]+)? {
+([0-9]+\.?|[0-9]*\.[0-9]+)([eE][+-]?[0-9]+)? {
 		sscanf(yytext, "%lf", &yylval.val); return NUMBER;
 		}
 [a-zA-Z][a-zA-Z0-9]* {
