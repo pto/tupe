@@ -8,7 +8,6 @@
 int yylex(void);
 void yyerror(char *s);
 void init(void);
-double Pow(double, double);
 %}
 
 %union {

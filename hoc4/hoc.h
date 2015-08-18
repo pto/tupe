@@ -27,6 +27,7 @@ extern Inst prog[];
 void eval(void), add(void), sub(void), mul(void), divide(void);
 void mod(void), negate(void), power(void);
 void assign(void), bltin(void), varpush(void), constpush(void), print(void);
+double Pow(double, double);
 
 Inst *code(Inst);
 void initcode(void);

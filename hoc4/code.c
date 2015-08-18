@@ -121,7 +121,7 @@ void power(void)
 
 	d2 = pop();
 	d1 = pop();
-	d1.val = pow(d1.val, d2.val);
+	d1.val = Pow(d1.val, d2.val);
 	push(d1);
 }
 
