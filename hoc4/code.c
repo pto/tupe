@@ -188,7 +188,7 @@ void bltin(void)
 	push(d);
 }
 
-char buffer[BUFSIZ];
+static char buffer[BUFSIZ];
 
 char *display(Inst *pc)
 {
