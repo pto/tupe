@@ -25,7 +25,7 @@ void init(void);
 %%
 list:	  /* nothing */
 		| list eos
-		| list asgn eos			{ code2((Inst)pop, STOP); return 1; }
+		| list asgn eos			{ code2((Inst)pop_discard, STOP); return 1; }
 		| list expr eos			{ code2(print, STOP); return 1; }
 		| list error eos		{ yyerrok; }
 		;
@@ -39,7 +39,7 @@ asgn:	  VAR '=' expr			{ code3(varpush, (Inst)$1, assign); }
 expr:	  NUMBER				{ code2(constpush, (Inst)$1); }
 		| VAR					{ code3(varpush, (Inst)$1, eval); }
 		| asgn
-		| BLTIN '(' expr ')'	{ code2(bltin, (Inst)$1->u.ptr); }
+		| BLTIN '(' expr ')'	{ code2(bltin, (Inst)$1); }
 		| '-' expr  %prec UNARYMINUS	{ code(negate); }
 		| '+' expr  %prec UNARYPLUS	
 		| expr '+' expr			{ code(add); }

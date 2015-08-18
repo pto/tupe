@@ -18,7 +18,8 @@ typedef union Datum {
 	Symbol *sym;
 } Datum;
 
-extern Datum pop(void);
+Datum pop(void);
+void pop_discard(void);
 
 typedef void (*Inst)();
 #define STOP (Inst)0

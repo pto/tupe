@@ -32,6 +32,13 @@ Datum pop(void)
 	return *--stackp;
 }
 
+void pop_discard(void)
+{
+	if (stackp <= stack)
+		execerror("stack underflow", (char  *)0);
+	--stackp;
+}
+
 Inst *code(Inst f)
 {
 	Inst *oprogp = progp;
@@ -43,8 +50,12 @@ Inst *code(Inst f)
 
 void execute(Inst *p)
 {
-	for (pc = p; *pc != STOP; )
+	char *display(Inst *);
+
+	for (pc = p; *pc != STOP; ) {
+		printf("TRACE: %s\n", display(pc));
 		(*(*pc++))();
+	}
 }
 
 void constpush()
@@ -169,8 +180,44 @@ void print(void)
 void bltin(void)
 {
 	Datum d;
+	Symbol *s;
 
 	d = pop();
-	d.val = (*(double (*)())(*pc++))(d.val);
+	s = (Symbol *)(*pc++);
+	d.val =(*((double (*)())s->u.ptr))(d.val);
 	push(d);
+}
+
+char buffer[BUFSIZ];
+
+char *display(Inst *pc)
+{
+	Symbol *ps;
+
+	ps = *((Symbol **)(pc + 1));
+
+	if (*pc == add) { return "add"; }
+   	else if (*pc == sub) { return "sub"; }	
+	else if (*pc == mul) { return "mul"; }
+	else if (*pc == divide) { return "div"; }
+	else if (*pc == mod) { return "mod"; }
+	else if (*pc == constpush) { 
+		snprintf(buffer, BUFSIZ, "constpush %g", ps->u.val);
+		return buffer;
+   	} else if (*pc == varpush) {
+	   	snprintf(buffer, BUFSIZ, "varpush %s", ps->name);
+		return buffer;
+   	}
+	else if (*pc == bltin) {
+	   	snprintf(buffer, BUFSIZ, "bltin %s", ps->name);
+		return buffer;
+   	}
+	else if (*pc == power) { return "power"; }
+	else if (*pc == negate) { return "negate"; }
+	else if (*pc == assign) { return "assign"; }
+	else if (*pc == (Inst)pop) { return "pop"; }
+	else if (*pc == pop_discard) { return "pop_discard"; }
+	else if (*pc == eval) { return "eval"; }
+	else if (*pc == print) { return "print"; }
+	else return "unknown opcode";
 }
