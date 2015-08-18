@@ -155,6 +155,7 @@ void assign(void)
 		execerror("assignment to non-variable", d1.sym->name);
 	d1.sym->u.val = d2.val;
 	d1.sym->type = VAR;
+    push(d2);
 }
 
 void print(void)
