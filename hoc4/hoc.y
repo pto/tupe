@@ -26,7 +26,7 @@ double Pow(double, double);
 %%
 list:	  /* nothing */
 		| list eos
-		| list asgn eos			{ code2((Inst)pop, STOP); return 1; }
+		| list asgn eos			{ code(STOP); return 1; }
 		| list expr eos			{ code2(print, STOP); return 1; }
 		| list error eos		{ yyerrok; }
 		;
