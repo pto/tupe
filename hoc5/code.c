@@ -188,6 +188,141 @@ void bltin(void)
 	push(d);
 }
 
+void le(void)
+{
+	Datum d1, d2;
+
+	d2 = pop();
+	d1 = pop();
+	d1.val = (double)(d1.val <= d2.val);
+	push(d1);
+}
+
+void lt(void)
+{
+	Datum d1, d2;
+
+	d2 = pop();
+	d1 = pop();
+	d1.val = (double)(d1.val < d2.val);
+	push(d1);
+}
+
+void ge(void)
+{
+	Datum d1, d2;
+
+	d2 = pop();
+	d1 = pop();
+	d1.val = (double)(d1.val >= d2.val);
+	push(d1);
+}
+
+void gt(void)
+{
+	Datum d1, d2;
+
+	d2 = pop();
+	d1 = pop();
+	d1.val = (double)(d1.val > d2.val);
+	push(d1);
+}
+
+void eq(void)
+{
+	Datum d1, d2;
+
+	d2 = pop();
+	d1 = pop();
+	d1.val = (double)(d1.val == d2.val);
+	push(d1);
+}
+
+void ne(void)
+{
+	Datum d1, d2;
+
+	d2 = pop();
+	d1 = pop();
+	d1.val = (double)(d1.val != d2.val);
+	push(d1);
+}
+
+void and(void)
+{
+	Datum d1, d2;
+
+	d2 = pop();
+	d1 = pop();
+	d1.val = (double)(d1.val && d2.val);
+	push(d1);
+}
+
+void or(void)
+{
+	Datum d1, d2;
+
+	d2 = pop();
+	d1 = pop();
+	d1.val = (double)(d1.val || d2.val);
+	push(d1);
+}
+
+void not(void)
+{
+	Datum d1;
+
+	d1 = pop();
+	d1.val = ~(int)d1.val;
+	push(d1);
+}
+
+void whilecode(void)
+{
+	Datum d;
+	Inst *savepc = pc;  // instruction after whilecode is address of body
+
+	execute(savepc + 2); // condition
+	printf("TRACE: )\n");
+	d = pop();
+	while (d.val) {
+		printf("TRACE: <body>\n");
+		execute(*((Inst **)(savepc)));	// body
+		printf("TRACE: (\n");
+		execute(savepc + 2);			// condition
+		printf("TRACE: )\n");
+		d = pop();
+	}
+	pc = *((Inst **)(savepc + 1));		// 2nd instr after while is next stmt
+}
+
+void prexpr(void)
+{
+	Datum d;
+
+	d = pop();
+	printf("%.8g\n", d.val);
+}
+
+void ifcode(void)
+{
+	Datum d;
+	Inst *savepc = pc;	// address of then
+
+	execute(savepc + 3); // condition
+	printf("TRACE: )\n");
+	d = pop();
+	if (d.val) {
+		printf("TRACE: <then>\n");
+		execute(*((Inst **)(savepc)));	// then
+	}
+	else if (*((Inst **)(savepc + 1))) {	// else (if it exists)
+		printf("TRACE: <else>\n");
+		execute(*((Inst **)(savepc + 1)));
+	}
+	pc = *((Inst **)(savepc + 2));		// next statement
+}
+
 static char buffer[BUFSIZ];
 
 char *display(Inst *pc)
@@ -219,5 +354,18 @@ char *display(Inst *pc)
 	else if (*pc == pop_discard) { return "pop_discard"; }
 	else if (*pc == eval) { return "eval"; }
 	else if (*pc == print) { return "print"; }
+	else if (*pc == le) { return "le"; }
+	else if (*pc == lt) { return "lt"; }
+	else if (*pc == ge) { return "ge"; }
+	else if (*pc == gt) { return "gt"; }
+	else if (*pc == eq) { return "eq"; }
+	else if (*pc == ne) { return "ne"; }
+	else if (*pc == and) { return "and"; }
+	else if (*pc == or) { return "or"; }
+	else if (*pc == not) { return "not"; }
+	else if (*pc == print) { return "print"; }
+	else if (*pc == prexpr) { return "prexpr"; }
+	else if (*pc == ifcode) { return "if ("; }
+	else if (*pc == whilecode) { return "while ("; }
 	else return "unknown opcode";
 }

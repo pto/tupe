@@ -25,11 +25,18 @@ typedef void (*Inst)();
 #define STOP (Inst)0
 
 extern Inst prog[];
+extern Inst *progp;
+extern Inst *pc;
+
 void eval(void), add(void), sub(void), mul(void), divide(void);
 void mod(void), negate(void), power(void);
 void assign(void), bltin(void), varpush(void), constpush(void), print(void);
 double Pow(double, double);
+void prexpr(void);
+void gt(void), lt(void), eq(void), ge(void), le(void), ne(void);
+void and(void), or(void), not(void), ifcode(void), whilecode(void);
 
 Inst *code(Inst);
 void initcode(void);
 void execute(Inst *);
+void prexpr(void);
