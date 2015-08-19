@@ -13,10 +13,17 @@ void init(void);
 %union {
 	Symbol *sym;
 	Inst   *inst;
+	int    narg;
 }
 
-%token <sym>	NUMBER PRINT VAR BLTIN UNDEF WHILE IF ELSE
-%type <inst>	stmt asgn expr stmtlist cond while if end
+%token <sym>	NUMBER STRING PRINT VAR BLTIN UNDEF WHILE IF ELSE
+%token <sym>	FUNCTION PROCEDURE RETURN FUNC PROC READ
+%token <narg>	ARG
+
+%type <inst>	stmt asgn expr prlist stmtlist cond while if begin end
+%type <sym>		procname
+%type <narg>	arglist
+
 %right '='
 %left OR
 %left AND
@@ -29,6 +36,7 @@ void init(void);
 %%
 list:	  /* nothing */
 		| list eos
+		| list defn eos
 		| list asgn eos			{ code2((Inst)pop_discard, STOP); return 1; }
 		| list stmt eos			{ code(STOP); return 1; }
 		| list expr eos			{ code2(print, STOP); return 1; }
@@ -39,10 +47,18 @@ eos:	  '\n'
    		| ';'
 		;
 
-asgn:	  VAR '=' expr			{ $$ = $3; code3(varpush, (Inst)$1, assign); }
+asgn:	  VAR '=' expr			{ code3(varpush, (Inst)$1, assign); $$ = $3; }
+		| ARG '=' expr			{
+			defnonly("$"); code2(varpush, (Inst)$1, assign); $$ = $3; }
+		;
 
 stmt:	  expr					{ code((Inst)pop); }
-		| PRINT expr			{ code(prexpr); $$ = $2; }
+		| RETURN				{ defnonly("return"); code(procret); }
+		| RETURN expr			{
+			defnonly("return"); $$ = $2; code(funcret); }
+		| PROCEDURE begin '(' arglist ')' {
+			$$ = $2; code3(call, (Inst)$1, (Inst)$4); }
+		| PRINT prlist			{ $$ = $2; }
 		| while cond stmt end	{
 			($1)[1] = (Inst)$3;
 			($1)[2] = (Inst)$4; }
@@ -74,7 +90,11 @@ stmtlist: /* nothing */			{ $$ = progp; }
 
 expr:	  NUMBER				{ $$ = code2(constpush, (Inst)$1); }
 		| VAR					{ $$ = code3(varpush, (Inst)$1, eval); }
+		| ARG					{ defnonly("$"); $$ = code2(arg, (Inst)$1); }
 		| asgn
+		| FUNCTION begin '(' arglist ')' {
+			$$ = $2; code3(call, (Inst)$1, (Inst)$4); }
+		| READ '(' VAR ')'		{ $$ = code2(varread, (Inst)$3); }
 		| BLTIN '(' expr ')'	{ $$ = $3; code2(bltin, (Inst)$1); }
 		| '-' expr  %prec UNARYMINUS	{ $$ = $2; code(negate); }
 		| '+' expr  %prec UNARYPLUS		{ $$ = $2; }
