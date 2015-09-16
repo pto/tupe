@@ -1,2 +1,2 @@
 # tupe
-The UNIX Programming Environment
+The UNIX Programming Environment examples
